@@ -63,6 +63,8 @@ Este endpoint devuelve una lista ordenada de problemas según la dificultad y po
 
 ## API
 
+![image](https://github.com/user-attachments/assets/f42e8db9-a5f1-4c4b-85fa-890ba889aa7d)
+
 ### `GET /AceptaElReto/GenerarRanking`
 
 Genera el ranking de problemas de 'Acepta el Reto'.
