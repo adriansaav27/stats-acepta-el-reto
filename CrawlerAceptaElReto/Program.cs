@@ -1,57 +1,58 @@
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// Servicios.
+builder.Services.AddControllers()
+	.AddJsonOptions(options =>
+		options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddCors(
- options =>
- {
-     options.AddPolicy(
-     "AllowCors",
-     builder =>
-     {
-         builder.SetIsOriginAllowed((x) => true); // Permite hacer llamadas AJAX.
-         builder.AllowAnyMethod().AllowAnyHeader().AllowCredentials();
-     });
- });
-
-builder.Services.AddControllersWithViews()
-                .AddJsonOptions(options =>
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "CrawlerAceptaElReto", Version = "latest" });
-    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+	options.SwaggerDoc("v1", new OpenApiInfo
+	{
+		Title = "CrawlerAceptaElReto",
+		Version = "latest"
+	});
+
+	var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+	var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+	if (File.Exists(xmlPath))
+		options.IncludeXmlComments(xmlPath);
+});
+
+builder.Services.AddCors(options =>
+{
+	options.AddPolicy("AllowCors", policy =>
+		policy.SetIsOriginAllowed(_ => true)
+			  .AllowAnyMethod()
+			  .AllowAnyHeader()
+			  .AllowCredentials());
 });
 
 var app = builder.Build();
+
+// Middlewares.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+	app.UseSwagger();
+	app.UseSwaggerUI();
 }
 else
 {
-    app.UseSwagger(c =>
-    {
-        c.PreSerializeFilters.Add((swaggerDoc, httpReq) => swaggerDoc.Servers =
-        [
-            new() { Url = $"/acepta-el-reto"},
-        ]);
-    });
+	app.UseSwagger(c =>
+	{
+		c.PreSerializeFilters.Add((swaggerDoc, _) =>
+		{
+			swaggerDoc.Servers = [new OpenApiServer { Url = "/acepta-el-reto" }];
+		});
+	});
+	app.UseSwaggerUI();
 }
 
-app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAuthorization();
